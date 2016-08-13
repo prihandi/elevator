@@ -61,19 +61,89 @@ Elevator.prototype.decide = function() {
     
     if(person) {
         person.get_floor();
-        return this.commit_decision(person.get_destination_floor());
     }
     
+    var target_floors = [];
+    
+    for (var i = 0;i<people.length;i++){
+        target_floors.push(people[i].get_destination_floor());
+    }
+    
+    var elevator_at_floor = this.get_position()/this.get_height()+1;
+
     for(var i = 0;i < requests.length;i++) {
         var handled = false;
         for(var j = 0;j < elevators.length;j++) {
-            if(elevators[j].get_destination_floor() == requests[i]) {
-                handled = true;
+            if (elevators.indexOf(this) != j){
+                var other_elevator_at_floor = elevators[j].get_position() / elevators[j].get_height() + 1;
+                if(elevators[j].get_destination_floor() == requests[i] ) {
+                    handled = true;
+                    break;
+                }
+            }
+        }
+        
+        if(!handled) {
+            target_floors.push(requests[i]);
+        }
+    }
+    
+    if (target_floors.length == 0){
+        return this.commit_decision(Math.floor(num_floors / 2));
+    }
+    
+    target_floors.sort(sortNumber);
+    
+    function sortNumber(a,b) {
+        return a - b;
+    }
+
+    var direction = this.direction;
+    
+    if (this.direction == null) {
+        this.direction = Elevator.DIRECTION_DOWN;
+        for (var i = 0; i < target_floors.length;i++){
+            if (target_floors[i] >= elevator_at_floor){
+                this.direction = Elevator.DIRECTION_UP;
                 break;
             }
         }
-        if(!handled) {
-            return this.commit_decision(requests[i]);
+    }
+     
+    if (this.direction == Elevator.DIRECTION_UP){
+        this.current_final_destination = target_floors[target_floors.length - 1];
+        for (var i = 0; i < target_floors.length;i++){
+            if (target_floors[i] >= elevator_at_floor){
+                return this.commit_decision(target_floors[i]);
+            }
+        }
+        
+        this.direction = Elevator.DIRECTION_DOWN;
+        
+        this.current_final_destination = target_floors[0];
+        for (var i = target_floors.length - 1; i > 0;i--){
+            if (target_floors[i] <= elevator_at_floor){
+                return this.commit_decision(target_floors[i]);
+            }
+        }
+        
+    }
+    
+
+    else if (this.direction == Elevator.DIRECTION_DOWN) {
+        this.current_final_destination = target_floors[0];
+        for (var i = target_floors.length - 1; i > 0;i--){
+            if (target_floors[i] <= elevator_at_floor){
+                return this.commit_decision(target_floors[i]);
+            }
+        }
+        
+        this.direction = Elevator.DIRECTION_UP;
+        this.current_final_destination = target_floors[target_floors.length - 1];
+        for (var i = 0; i < target_floors.length;i++){
+            if (target_floors[i] >= elevator_at_floor){
+                return this.commit_decision(target_floors[i]);
+            }
         }
     }
 
